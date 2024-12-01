@@ -1,3 +1,11 @@
+# TODO: Deixar labirinto maior. Obs.: Não deu muito certo, a saída fica 
+# inacessível, ficam paredes grossas em baixo e do lado direito e os 
+# botões da janela do jogo somem
+
+#Configurações:
+# - Para mudar a velocidade do jogador é só mudar a variável 
+# player_speed, quanto MAIOR o VALOR, MENOR a VELOCIDADE
+
 import pygame
 import sys
 import random
@@ -93,6 +101,9 @@ def main():
     maze = generate_maze(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
     pontos = 0
 
+    player_speed = 125  # Tempo em milissegundos entre movimentos
+    last_move_time = 0  # Momento do último movimento
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -101,14 +112,20 @@ def main():
 
         # Movimento do jogador
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP]:
-            move_player(maze, 0, -1)
-        if keys[pygame.K_DOWN]:
-            move_player(maze, 0, 1)
-        if keys[pygame.K_LEFT]:
-            move_player(maze, -1, 0)
-        if keys[pygame.K_RIGHT]:
-            move_player(maze, 1, 0)
+        current_time = pygame.time.get_ticks()  # Obtém o tempo atual
+        if current_time - last_move_time >= player_speed:
+            if keys[pygame.K_UP]:
+                move_player(maze, 0, -1)
+                last_move_time = current_time  # Atualiza o último movimento
+            if keys[pygame.K_DOWN]:
+                move_player(maze, 0, 1)
+                last_move_time = current_time
+            if keys[pygame.K_LEFT]:
+                move_player(maze, -1, 0)
+                last_move_time = current_time
+            if keys[pygame.K_RIGHT]:
+                move_player(maze, 1, 0)
+                last_move_time = current_time
 
         # Verifica se o jogador chegou à saída
         if maze[player["y"]][player["x"]] == 2:
