@@ -1,10 +1,11 @@
 # FUNCIONALIDADES PRINCIPAIS: 
-# TODO: Fazer aparecer armas
 # TODO: Fazer o player atirar na direção da última direção que ele andou
+# TODO: Fazer o tiro matar o inimigo
 # TODO: Fazer o inimigo matar o jogador (Isso tem que ser depois que o player
 # conseguir matar o inimigo)
 
 #FUNCIONALIDADES SECUNDÁRIAS:
+# TODO: Fazer aparecer armas
 # TODO: Deixar labirinto maior. Obs.: Não deu muito certo, a saída fica 
 # inacessível, ficam paredes grossas em baixo e do lado direito e os 
 # botões da janela do jogo somem
@@ -98,6 +99,25 @@ def move_player(maze, dx, dy):
         player["x"] = new_x
         player["y"] = new_y
 
+# Função para gerar a arma
+def spawn_weapon(maze, player_x, player_y):
+    while True:
+        weapon_x = random.randint(1, len(maze[0]) - 2)
+        weapon_y = random.randint(1, len(maze) - 2)
+        # A arma não pode nascer dentro de uma parede e perto do jogador (distância mínima de 5)
+        if maze[weapon_y][weapon_x] == 0 and abs(player_x - weapon_x) < 3 and abs(player_y - weapon_y) < 3 and (weapon_x != player_x or weapon_y != player_y):
+            return weapon_x, weapon_y
+
+
+# Função para desenhar a arma
+def draw_weapon(weapon_x, weapon_y):
+    pygame.draw.rect(SCREEN, (255, 215, 0), (weapon_x * TILE_SIZE, weapon_y * TILE_SIZE, TILE_SIZE, TILE_SIZE))  # Arma amarela
+
+# Função para o jogador pegar a arma
+def pickup_weapon():
+    return True  # Marca que o jogador pegou a arma (essa função pode ser expandida para incluir uma lógica de poder de ataque, por exemplo)
+
+
 # Funções dos Inimigos
 def draw_enemies():
     for enemy in enemies:
@@ -157,6 +177,10 @@ def main():
     player_speed = 125  # Tempo em milissegundos entre movimentos
     last_move_time = 0  # Momento do último movimento
 
+    weapon_x, weapon_y = spawn_weapon(maze, player["x"], player["y"])  # Gera a arma perto do jogador
+
+    weapon_picked_up = False  # Marca se a arma foi pegada ou não
+
     enemy_speed = 500  # Tempo em milissegundos entre movimentos dos inimigos
     last_enemy_move_times = []  # Momento do último movimento de cada inimigo
 
@@ -195,6 +219,11 @@ def main():
                 move_player(maze, 1, 0)
                 last_move_time = current_time
 
+        # Verifica se o jogador apertou a barra de espaço para pegar a arma
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] and player["x"] == weapon_x and player["y"] == weapon_y and not weapon_picked_up:
+            weapon_picked_up = pickup_weapon()
+
         # Verifica se o jogador chegou à saída
         if maze[player["y"]][player["x"]] == 2:
             pontos += 1
@@ -214,6 +243,10 @@ def main():
         draw_maze(maze)
         draw_player()
         draw_enemies()
+
+        if not weapon_picked_up:
+            draw_weapon(weapon_x, weapon_y)  # Desenha a arma na tela se não tiver sido pega
+
 
         pygame.display.flip()
         CLOCK.tick(FPS)
