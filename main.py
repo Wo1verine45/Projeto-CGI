@@ -77,28 +77,26 @@ def generate_maze(width, height):
     # Gera o labirinto com caminho garantido
     carve_path(1, 1)
 
-    # Garante conexão entre o início e a saída
-    path = [(1, 1)]
-    visited = set(path)
-
-    while path:
-        x, y = path.pop()
-        if (x, y) == (width - 2, height - 2):
-            break
-        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-            nx, ny = x + dx, y + dy
-            if 1 <= nx < width - 1 and 1 <= ny < height - 1 and (nx, ny) not in visited and maze[ny][nx] != 1:
-                visited.add((nx, ny))
-                path.append((nx, ny))
-
+    # Assegura que a saída está correta após a geração
+    maze[height - 2][width - 2] = 2  # Recoloca a saída caso tenha sido sobrescrita
     return maze
 
 def draw_maze(maze):
     for y, row in enumerate(maze):
         for x, cell in enumerate(row):
-            color = WHITE if cell == 0 else BLACK
-            if cell == 2:
-                color = GREEN  # Saída em verde
+            # Define a cor do tile com base no valor de `cell`
+            if cell == 0:  # Espaço vazio
+                color = WHITE
+            elif cell == 1:  # Parede
+                color = BLACK
+            elif cell == 2:  # Saída normal em verde
+                color = GREEN
+            elif cell == 3:  # Saída azul clara
+                color = (173, 216, 230)  # Azul claro
+            else:
+                color = WHITE  # Caso padrão (não esperado)
+
+            # Desenha o tile no labirinto
             pygame.draw.rect(SCREEN, color, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
 # Funções do Jogador
@@ -108,7 +106,7 @@ def draw_player():
 def move_player(maze, dx, dy):
     new_x = player["x"] + dx
     new_y = player["y"] + dy
-    if maze[new_y][new_x] == 0 or maze[new_y][new_x] == 2:
+    if maze[new_y][new_x] == 0 or maze[new_y][new_x] == 2 or maze[new_y][new_x] == 3:
         player["x"] = new_x
         player["y"] = new_y
         # Atualiza a última direção em que o jogador se moveu
@@ -231,10 +229,10 @@ def move_bullets(maze):
                 print(f"Tiro atingiu inimigo em ({bullet['x']}, {bullet['y']})!")
                 break
 
-def add_room_to_maze(maze, quadrant):
+def add_room_to_maze(maze, quadrant, exit_pos=None):
     """
     Adiciona uma sala vazia no labirinto em um dos quadrantes permitidos.
-    A sala é 7x7, com um interior de 5x5, aproveitando paredes do labirinto.
+    A sala é 7x7, com um interior de 5x5, e somente um tile azul claro no centro.
     """
     width = len(maze[0])
     height = len(maze)
@@ -246,53 +244,26 @@ def add_room_to_maze(maze, quadrant):
     if quadrant == 2:  # Superior direito
         x_start = width - room_size
         y_start = 0
-        use_labyrinth_wall = ("top", "right")
     elif quadrant == 3:  # Inferior esquerdo
         x_start = 0
         y_start = height - room_size
-        use_labyrinth_wall = ("left", "bottom")
 
-    # Preenche o interior da sala (5x5)
+    # Preenche o interior da sala (5x5) com tiles vazios
     for y in range(y_start + 1, y_start + 1 + inner_size):
         for x in range(x_start + 1, x_start + 1 + inner_size):
             maze[y][x] = 0  # Marca como espaço vazio
-
-    # Cria as paredes externas necessárias
-    if "top" not in use_labyrinth_wall:  # Constrói a parede superior
-        for x in range(x_start, x_start + room_size):
-            maze[y_start][x] = 1
-    if "bottom" not in use_labyrinth_wall:  # Constrói a parede inferior
-        for x in range(x_start, x_start + room_size):
-            maze[y_start + room_size - 1][x] = 1
-    if "left" not in use_labyrinth_wall:  # Constrói a parede esquerda
-        for y in range(y_start, y_start + room_size):
-            maze[y][x_start] = 1
-    if "right" not in use_labyrinth_wall:  # Constrói a parede direita
-        for y in range(y_start, y_start + room_size):
-            maze[y][x_start + room_size - 1] = 1
-
-    # Adiciona uma única entrada na parede construída
-    possible_entrances = []
-    if "top" not in use_labyrinth_wall:  # Entrada na parede superior
-        for x in range(x_start + 1, x_start + 1 + inner_size):
-            if maze[y_start - 1][x] == 0:
-                possible_entrances.append((x, y_start))
-    if "bottom" not in use_labyrinth_wall:  # Entrada na parede inferior
-        for x in range(x_start + 1, x_start + 1 + inner_size):
-            if maze[y_start + room_size][x] == 0:
-                possible_entrances.append((x, y_start + room_size - 1))
-    if "left" not in use_labyrinth_wall:  # Entrada na parede esquerda
-        for y in range(y_start + 1, y_start + 1 + inner_size):
-            if maze[y][x_start - 1] == 0:
-                possible_entrances.append((x_start, y))
-    if "right" not in use_labyrinth_wall:  # Entrada na parede direita
-        for y in range(y_start + 1, y_start + 1 + inner_size):
-            if maze[y][x_start + room_size] == 0:
-                possible_entrances.append((x_start + room_size - 1, y))
-
-    if possible_entrances:
-        entrance_x, entrance_y = random.choice(possible_entrances)
-        maze[entrance_y][entrance_x] = 0  # Marca a entrada como caminho livre
+    
+    # Adiciona a saída azul clara no centro da sala (posição [2, 2])
+    maze[y_start + 2][x_start + 2] = 3  # 3 representa a nova saída azul clara
+    
+    # Adiciona as paredes ao redor da sala (mas não dentro dela)
+    for y in range(y_start, y_start + room_size):
+        maze[y][x_start] = 1  # Parede esquerda
+        maze[y][x_start + room_size - 1] = 1  # Parede direita
+    
+    for x in range(x_start, x_start + room_size):
+        maze[y_start][x] = 1  # Parede superior
+        maze[y_start + room_size - 1][x] = 1  # Parede inferior
 
     return maze
 
@@ -321,14 +292,63 @@ def is_path_clear(maze, start, targets):
     
     return False
 
-def ensure_paths(maze, player_start, room_entrance, exit_pos):
+def ensure_paths(maze, start_pos, room_entrance, exit_pos):
     """
-    Garante que há caminhos entre o jogador, a entrada da sala e a saída.
+    Garante caminhos livres entre o jogador, a entrada da sala e a saída.
     """
-    all_points = [room_entrance, exit_pos]
-    for target in all_points:
-        if not is_path_clear(maze, player_start, [target]):
-            create_path(maze, player_start, target)
+    def carve_path(maze, start, end):
+        """Cria um caminho livre entre dois pontos."""
+        x1, y1 = start
+        x2, y2 = end
+        while (x1, y1) != (x2, y2):
+            maze[y1][x1] = 0  # Marca como caminho livre
+            if x1 < x2:
+                x1 += 1
+            elif x1 > x2:
+                x1 -= 1
+            elif y1 < y2:
+                y1 += 1
+            elif y1 > y2:
+                y1 -= 1
+        maze[y2][x2] = 0  # Garante que o ponto final seja caminho
+
+    # Garante caminho entre o jogador e a entrada da sala
+    carve_path(maze, start_pos, room_entrance)
+    
+    # Garante caminho entre a entrada da sala e a saída
+    carve_path(maze, room_entrance, exit_pos)
+
+    # Garante que a saída esteja livre após criar os caminhos
+    ensure_exit_walls(maze, exit_pos)
+
+def ensure_exit_walls(maze, exit_pos):
+    """
+    Garante que as paredes ao redor da saída estejam intactas e que a saída não seja bloqueada.
+    """
+    exit_x, exit_y = exit_pos
+
+    # Restaurar a parede acima da saída (linha completa)
+    if exit_y > 0:  # Apenas se houver espaço para uma parede acima
+        for x in range(len(maze[0])):  # Itera horizontalmente
+            if maze[exit_y - 1][x] != 0:  # Apenas paredes, não caminhos
+                maze[exit_y - 1][x] = 1
+
+    # Garante que a saída em si seja livre
+    maze[exit_y][exit_x] = 0
+
+    # Garante que nenhum tile diretamente em frente à saída esteja bloqueado
+    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        adj_x, adj_y = exit_x + dx, exit_y + dy
+        if 0 <= adj_x < len(maze[0]) and 0 <= adj_y < len(maze):
+            if (dx, dy) == (0, 1):  # Apenas para a posição diretamente em frente à saída
+                maze[adj_y][adj_x] = 0
+
+def add_room_to_maze_with_validation(maze, quadrant, player_start, exit_pos):
+    maze = add_room_to_maze(maze, quadrant, exit_pos)
+    room_entrance = find_room_entrance(maze, quadrant)
+    ensure_paths(maze, player_start, room_entrance, exit_pos)
+    ensure_exit_persistence(maze, exit_pos)  # Garante consistência da saída
+    return maze
 
 def create_path(maze, start, end):
     """
@@ -348,16 +368,6 @@ def create_path(maze, start, end):
             y1 -= 1
         maze[y1][x1] = 0  # Torna o tile parte do caminho
 
-def add_room_to_maze_with_validation(maze, quadrant, player_start, exit_pos):
-    """
-    Adiciona uma sala vazia ao labirinto, garantindo conectividade.
-    """
-    maze = add_room_to_maze(maze, quadrant)  # Cria a sala
-    room_entrance = find_room_entrance(maze, quadrant)  # Determina a entrada da sala
-    ensure_paths(maze, player_start, room_entrance, exit_pos)  # Garante os caminhos
-    ensure_exit_persistence(maze, exit_pos)  # Garante que a saída permaneça
-    return maze
-
 def find_room_entrance(maze, quadrant):
     """
     Determina a entrada da sala no labirinto.
@@ -370,13 +380,18 @@ def find_room_entrance(maze, quadrant):
         return 3, len(maze) - 4
 
 def ensure_exit_persistence(maze, exit_pos):
-    """
-    Garante que a saída permaneça no labirinto.
-    """
     x, y = exit_pos
-    if maze[y][x] != 2:  # Se a saída foi alterada
-        maze[y][x] = 2  # Recoloca a saída no lugar correto
 
+    # Assegura que o tile da saída é mantido
+    maze[y][x] = 2
+
+    # Reforça as paredes ao redor da saída, se necessário
+    if y > 0:  # Linha acima
+        maze[y - 1][x] = 1
+    if y < len(maze) - 1:  # Linha abaixo
+        maze[y + 1][x] = 1
+    if x < len(maze[0]) - 1:  # Coluna à direita
+        maze[y][x + 1] = 1
 
 def main():
     # Gera o labirinto inicial
@@ -450,12 +465,23 @@ def main():
             pygame.quit()
             sys.exit()  # Encerra o jogo
 
+        # Verifica se o jogador chegou à nova saída azul clara
+        if maze[player["y"]][player["x"]] == 3:  # Se o jogador estiver na posição da nova saída
+            print("Você encontrou a saída azul clara! O jogo terminou.")
+            pontos += 1
+            print(f"Pontos: {pontos}")
+            # Pode adicionar mais lógica aqui, como reiniciar o labirinto ou fechar o jogo
+            pygame.quit()
+            sys.exit()  # Isso finaliza o loop e encerra o jogo
+
         # Verifica se o jogador chegou à saída
         if maze[player["y"]][player["x"]] == 2:
             pontos += 1
             print(f"Você completou um labirinto! Pontos: {pontos}")
             maze = generate_maze(SCREEN_WIDTH // TILE_SIZE, SCREEN_HEIGHT // TILE_SIZE)
             
+            ensure_exit_persistence(maze, (len(maze[0]) - 2, len(maze) - 2))  # Valida saída
+
             if pontos % 1 == 0:  # Verifica se o jogador está em uma fase múltipla de 5
                 available_quadrants = [2, 3]  # Apenas superior direito e inferior esquerdo
                 selected_quadrant = random.choice(available_quadrants)
