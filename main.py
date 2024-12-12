@@ -1,27 +1,3 @@
-# FUNCIONALIDADES PRINCIPAIS: 
-# TODO: Aposentadoria - Problema principal atual: Toda fase que tem a 
-# sala vazia da aposentadoria, a parede do labirinto em cima da saida 
-# some por algum motivo, deixando essa fase muito fácil.
-# Problema secundário: Algumas vezes tem duas ou mais entradas para a sala
-# vazia, mas eu queria que só fosse uma entrada
-# Obs: Deixei para a sala vazia nascer toda fase a partir da primeira pra
-# ficar mais fácil de testar
-# TODO: Buff dos inimigos e do jogador
-# TODO: Fazer aparecer armas
-
-#FUNCIONALIDADES SECUNDÁRIAS:
-# TODO: Ao invés de fechar o jogo ao morrer, voltar pra fase 1 com 0 pontos e sem arma ou pra tela de início, se for ter. Prestar atenção que vai ter que resetar tudo, 
-#como os buffs etc
-# TODO: Tela de início/título/menu
-# TODO: Fazer o jogador olhar pra direção antes de andar, pra ele não ter que andar pra atirar em uma direção
-# TODO: Deixar labirinto maior. Obs.: Não deu muito certo, a saída fica 
-# inacessível, ficam paredes grossas em baixo e do lado direito e os 
-# botões da janela do jogo somem
-
-#Configurações:
-# - Para mudar a velocidade do jogador é só mudar a variável 
-# player_speed, quanto MAIOR o VALOR, MENOR a VELOCIDADE
-
 import pygame
 import sys
 import random
@@ -81,6 +57,7 @@ def generate_maze(width, height):
     maze[height - 2][width - 2] = 2  # Recoloca a saída caso tenha sido sobrescrita
     return maze
 
+#Labirinto
 def draw_maze(maze):
     for y, row in enumerate(maze):
         for x, cell in enumerate(row):
@@ -103,6 +80,7 @@ def draw_maze(maze):
 def draw_player():
     pygame.draw.rect(SCREEN, BLUE, (player["x"] * TILE_SIZE, player["y"] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
+#Jogador
 def move_player(maze, dx, dy):
     new_x = player["x"] + dx
     new_y = player["y"] + dy
@@ -130,12 +108,12 @@ def pickup_weapon():
     print("Arma pega!")
     return True  # Marca que o jogador pegou a arma (essa função pode ser expandida para incluir uma lógica de poder de ataque, por exemplo)
 
-
 # Funções dos Inimigos
 def draw_enemies():
     for enemy in enemies:
         pygame.draw.rect(SCREEN, RED, (enemy["x"] * TILE_SIZE, enemy["y"] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
+#Inimigos
 def move_enemies(maze, last_enemy_move_times, enemy_speed):
     current_time = pygame.time.get_ticks()  # Obtém o tempo atual
     for i, enemy in enumerate(enemies):
@@ -182,6 +160,7 @@ def spawn_enemy(maze, player_x, player_y):
         if maze[enemy_y][enemy_x] == 0 and (abs(enemy_x - player_x) > 5 or abs(enemy_y - player_y) > 5):
             return {"x": enemy_x, "y": enemy_y}
 
+#Inimigos
 def check_player_death():
     for enemy in enemies:
         if enemy["x"] == player["x"] and enemy["y"] == player["y"]:
@@ -189,7 +168,7 @@ def check_player_death():
             return True  # Retorna True indicando que o jogador foi morto
     return False  # Retorna False se o jogador não foi morto
 
-# Funções de Tiros
+# Funções de Tiros da arma
 def shoot_bullet():
     # Verifica se o jogador possui uma última direção válida para atirar
     if "last_direction" in player and player["last_direction"] != (0, 0):
@@ -206,11 +185,13 @@ def shoot_bullet():
         # Mensagem no console indicando por que o tiro não foi disparado
         print("Falha ao disparar o tiro: última direção inválida ou não definida.")
 
+#arma
 def draw_bullets():
     # Desenha todos os projéteis na tela
     for bullet in bullets:
         pygame.draw.rect(SCREEN, YELLOW, (bullet["x"] * TILE_SIZE + TILE_SIZE // 4, bullet["y"] * TILE_SIZE + TILE_SIZE // 4, TILE_SIZE // 2, TILE_SIZE // 2))
 
+#arma
 def move_bullets(maze):
     # Move os projéteis e verifica colisões
     for bullet in bullets[:]:
@@ -229,6 +210,7 @@ def move_bullets(maze):
                 print(f"Tiro atingiu inimigo em ({bullet['x']}, {bullet['y']})!")
                 break
 
+#Aposentadoria
 def add_room_to_maze(maze, quadrant, exit_pos=None):
     """
     Adiciona uma sala vazia no labirinto em um dos quadrantes permitidos.
@@ -267,31 +249,7 @@ def add_room_to_maze(maze, quadrant, exit_pos=None):
 
     return maze
 
-def is_path_clear(maze, start, targets):
-    """
-    Verifica se há um caminho claro entre o ponto de início e qualquer um dos alvos.
-    """
-    height = len(maze)
-    width = len(maze[0])
-    visited = [[False] * width for _ in range(height)]
-    queue = deque([start])
-    visited[start[1]][start[0]] = True
-
-    while queue:
-        x, y = queue.popleft()
-        if (x, y) in targets:
-            return True  # Alvo alcançado
-
-        # Movimentos possíveis (cima, baixo, esquerda, direita)
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < width and 0 <= ny < height and not visited[ny][nx] and maze[ny][nx] == 0:
-                visited[ny][nx] = True
-                queue.append((nx, ny))
-    
-    return False
-
+#Aposentadoria
 def ensure_paths(maze, start_pos, room_entrance, exit_pos):
     """
     Garante caminhos livres entre o jogador, a entrada da sala e a saída.
@@ -321,6 +279,7 @@ def ensure_paths(maze, start_pos, room_entrance, exit_pos):
     # Garante que a saída esteja livre após criar os caminhos
     ensure_exit_walls(maze, exit_pos)
 
+#Labirinto
 def ensure_exit_walls(maze, exit_pos):
     """
     Garante que as paredes ao redor da saída estejam intactas e que a saída não seja bloqueada.
@@ -343,6 +302,7 @@ def ensure_exit_walls(maze, exit_pos):
             if (dx, dy) == (0, 1):  # Apenas para a posição diretamente em frente à saída
                 maze[adj_y][adj_x] = 0
 
+#Aposentadoria
 def add_room_to_maze_with_validation(maze, quadrant, player_start, exit_pos):
     maze = add_room_to_maze(maze, quadrant, exit_pos)
     room_entrance = find_room_entrance(maze, quadrant)
@@ -350,24 +310,7 @@ def add_room_to_maze_with_validation(maze, quadrant, player_start, exit_pos):
     ensure_exit_persistence(maze, exit_pos)  # Garante consistência da saída
     return maze
 
-def create_path(maze, start, end):
-    """
-    Cria um caminho direto entre dois pontos (start e end) no labirinto.
-    """
-    x1, y1 = start
-    x2, y2 = end
-
-    while (x1, y1) != (x2, y2):
-        if x1 < x2:
-            x1 += 1
-        elif x1 > x2:
-            x1 -= 1
-        elif y1 < y2:
-            y1 += 1
-        elif y1 > y2:
-            y1 -= 1
-        maze[y1][x1] = 0  # Torna o tile parte do caminho
-
+#Aposentadoria
 def find_room_entrance(maze, quadrant):
     """
     Determina a entrada da sala no labirinto.
@@ -379,6 +322,7 @@ def find_room_entrance(maze, quadrant):
     elif quadrant == 3:  # Inferior esquerdo
         return 3, len(maze) - 4
 
+#Labirinto
 def ensure_exit_persistence(maze, exit_pos):
     x, y = exit_pos
 
@@ -482,7 +426,7 @@ def main():
             
             ensure_exit_persistence(maze, (len(maze[0]) - 2, len(maze) - 2))  # Valida saída
 
-            if pontos % 1 == 0:  # Verifica se o jogador está em uma fase múltipla de 5
+            if pontos % 5 == 0:  # Verifica se o jogador está em uma fase múltipla de 5
                 available_quadrants = [2, 3]  # Apenas superior direito e inferior esquerdo
                 selected_quadrant = random.choice(available_quadrants)
                 maze = add_room_to_maze_with_validation(maze, selected_quadrant, player_start=(1, 1), exit_pos=(len(maze[0]) - 2, len(maze) - 2))
